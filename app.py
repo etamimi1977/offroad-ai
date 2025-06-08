@@ -6,35 +6,33 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Set your OpenAI API key
-openai.api_key = os.environ.get("OPENAI_API_KEY") or "your-openai-api-key-here"
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-@app.route('/ask', methods=['POST'])
+@app.route("/ask", methods=["POST"])
 def ask():
+    data = request.get_json()
+    question = data.get("message", "")
+
+    if not question:
+        return jsonify({"error": "No question provided"}), 400
+
+    # Force off-road topic
+    prompt = f"You are an off-road expert. Only reply to off-roading-related questions. Ignore other topics. Question: {question}"
+
     try:
-        data = request.get_json()
-        user_question = data.get('message', '')
-
-        # Build the prompt to keep it on-topic
-        prompt = f"""You are an expert off-road assistant. ONLY answer off-road related questions.
-User: {user_question}
-Assistant:"""
-
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            max_tokens=150,
-            temperature=0.7,
             messages=[
-                {"role": "system", "content": "You are a helpful off-road assistant who only responds to off-roading topics."},
+                {"role": "system", "content": "You are an off-road expert assistant."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            max_tokens=150
         )
-
-        reply = response['choices'][0]['message']['content'].strip()
-        return jsonify({'reply': reply})
+        reply = response['choices'][0]['message']['content']
+        return jsonify({"reply": reply})
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
