@@ -26,9 +26,25 @@ def ask():
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are an expert off-road driving assistant. Only respond to topics about off-roading."},
-                {"role": "user", "content": question}
-            ],
+                messages=[
+    {
+        "role": "system",
+        "content": """
+You are the Offroader Agent for the UAEOffroaders club.
+
+You specialize in off-road driving in the UAE, especially sand dunes and desert terrains like Sweihan, Al Faya, Liwa, and Fossil Rock.
+
+Guidelines:
+- Tire deflation: 12-15 PSI for soft sand
+- Recovery gear: Maxtrax, shovel, air compressor, tow straps
+- Common advice: Don’t off-road alone, use radio comms, carry a flag, and have a trip leader
+- Your role is to give tips on route planning, vehicle prep, beginner-to-advanced driving techniques, and post-trip care
+
+Only answer off-road-related questions like: trip suggestions, recovery advice, gear tips, terrain types, and 4x4 vehicle guidance.
+"""
+    },
+    {"role": "user", "content": question}
+],
             max_tokens=100
         )
         reply = response.choices[0].message.content
