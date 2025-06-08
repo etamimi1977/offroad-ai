@@ -1,27 +1,37 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import openai
 import os
 
 app = Flask(__name__)
-openai.api_key = os.environ.get('OPENAI_API_KEY')
+CORS(app)
 
-@app.route('/ask', methods=['POST'])
-def ask_ai():
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+
+@app.route("/ask", methods=["POST"])
+def ask():
     data = request.get_json()
-    user_message = data.get('message', '')
+    user_message = data.get("message", "")
 
-    # Modified system prompt to restrict GPT to off-road topics only
-    system_prompt = "You are an expert off-road driving assistant. Only respond to questions related to off-roading, desert driving, 4x4 vehicles, recovery, dune bashing, camping, gear, terrain, etc. If a question is not about off-roading, politely reply: 'Sorry, I only answer off-road related questions.'"
+    # Limit response only to off-road related topics
+    prompt = f"You are an off-road assistant. Only answer questions related to off-roading, such as vehicle setup, desert navigation, trail recommendations, safety, recovery gear, etc. Ignore or reject any unrelated questions. Here is the user's question: {user_message}"
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ],
-        max_tokens=150,  # Limit response length
-        temperature=0.7   # Keep it informative but not too wild
-    )
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an expert off-road assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,  # Limiting token usage for performance and cost control
+            temperature=0.7,
+        )
 
-    reply = response['choices'][0]['message']['content']
-    return jsonify({'reply': reply})
+        reply = response.choices[0].message["content"]
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
