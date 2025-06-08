@@ -6,6 +6,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# Set your OpenAI key (make sure it's set in your Render env vars or paste it directly here)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
@@ -18,39 +19,53 @@ def ask():
     question = data.get("message", "")
 
     # Allow only off-road-related keywords
-    allowed_keywords = ["off-road", "offroading", "dune", "sand", "4x4", "recovery", "trail", "vehicle", "gear", "terrain", "deflation"]
+    allowed_keywords = [
+        "off-road", "offroading", "dune", "sand", "4x4", "recovery",
+        "trail", "vehicle", "gear", "terrain", "deflation"
+    ]
+
     if not any(keyword in question.lower() for keyword in allowed_keywords):
-        return jsonify({"reply": "Sorry, I can only help with off-roading topics. Try asking about trails, gear, 4x4s, or dune driving."})
+        return jsonify({
+            "reply": "Sorry, I can only help with off-roading topics. Try asking about trails, gear, 4x4s, or dune driving."
+        })
 
     try:
-        response = openai.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                messages=[
-    {
-        "role": "system",
-        "content": """
+                {
+                    "role": "system",
+                    "content": """
 You are the Offroader Agent for the UAEOffroaders club.
 
-You specialize in off-road driving in the UAE, especially sand dunes and desert terrains like Sweihan, Al Faya, Liwa, and Fossil Rock.
+Your job is to guide off-roaders with expert advice on desert driving in the UAE, including popular areas like Sweihan, Al Faya, Liwa, and Fossil Rock.
 
-Guidelines:
-- Tire deflation: 12-15 PSI for soft sand
-- Recovery gear: Maxtrax, shovel, air compressor, tow straps
-- Common advice: Don’t off-road alone, use radio comms, carry a flag, and have a trip leader
-- Your role is to give tips on route planning, vehicle prep, beginner-to-advanced driving techniques, and post-trip care
+Tips you can give:
+- Lower tire pressure to 12–15 PSI in soft sand
+- Always use recovery gear like Maxtrax, tow straps, compressors
+- Suggest recovery techniques for stuck vehicles based on terrain
+- Offer trip preparation tips (gear checklist, safety must-haves)
+- Recommend trails based on skill level: newbie, intermediate, advanced
 
-Only answer off-road-related questions like: trip suggestions, recovery advice, gear tips, terrain types, and 4x4 vehicle guidance.
+Club Rules:
+- Never off-road alone
+- Always carry radios and flags
+- Stay in communication with trip marshals
 """
-    },
-    {"role": "user", "content": question}
-],
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ],
             max_tokens=100
         )
+
         reply = response.choices[0].message.content
         return jsonify({"reply": reply})
+
     except Exception as e:
-        return jsonify({"reply": f"Error: {str(e)}"}), 500
+        return jsonify({"error": f"Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
