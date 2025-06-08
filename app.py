@@ -13,27 +13,26 @@ def ask():
     data = request.get_json()
     question = data.get("message", "")
 
-    if not question:
-        return jsonify({"error": "No question provided"}), 400
-
-    # Force off-road topic
-    prompt = f"You are an off-road expert. Only reply to off-roading-related questions. Ignore other topics. Question: {question}"
+    # Filter non-offroad content
+    allowed_keywords = ["off-road", "offroading", "dune", "sand", "4x4", "recovery", "trail", "vehicle", "gear", "terrain", "deflation"]
+    if not any(keyword in question.lower() for keyword in allowed_keywords):
+        return jsonify({"reply": "Sorry, I can only help with off-roading topics. Try asking something related to 4x4 adventures or dune driving."})
 
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
+            max_tokens=100,  # Limit token usage
             messages=[
-                {"role": "system", "content": "You are an off-road expert assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=150
+                {"role": "system", "content": "You are an expert off-road driving assistant. Only respond to topics about off-roading."},
+                {"role": "user", "content": question}
+            ]
         )
-        reply = response['choices'][0]['message']['content']
+        reply = response.choices[0].message["content"]
         return jsonify({"reply": reply})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"reply": f"Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # use 10000 or any custom port
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
