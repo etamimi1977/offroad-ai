@@ -8,21 +8,18 @@ CORS(app)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Test route to confirm service is working
-@app.route("/test", methods=["GET"])
-def test():
+@app.route("/", methods=["GET"])
+def health_check():
     return jsonify({"status": "Service is up and running!"})
 
-# ✅ Main AI assistant route
 @app.route("/ask", methods=["POST"])
 def ask():
     data = request.get_json()
     question = data.get("message", "")
 
-    # Filter for off-road topics only
     allowed_keywords = ["off-road", "offroading", "dune", "sand", "4x4", "recovery", "trail", "vehicle", "gear", "terrain", "deflation"]
     if not any(keyword in question.lower() for keyword in allowed_keywords):
-        return jsonify({"reply": "Sorry, I can only help with off-roading topics. Try asking something related to 4x4 adventures or dune driving."})
+        return jsonify({"reply": "Sorry, I can only help with off-roading topics."})
 
     try:
         response = openai.ChatCompletion.create(
@@ -39,7 +36,6 @@ def ask():
     except Exception as e:
         return jsonify({"reply": f"Error: {str(e)}"}), 500
 
-# ✅ App entry point
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
