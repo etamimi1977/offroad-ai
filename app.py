@@ -6,8 +6,12 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Set your OpenAI key (make sure it's set in your Render env vars or paste it directly here)
+# Load API keys from environment
 openai.api_key = os.getenv("OPENAI_API_KEY")
+API_KEY = os.getenv("API_KEY")
+
+def check_api_key():
+    return request.headers.get("x-api-key") == API_KEY
 
 @app.route("/", methods=["GET"])
 def health_check():
@@ -15,10 +19,12 @@ def health_check():
 
 @app.route("/ask", methods=["POST"])
 def ask():
+    if not check_api_key():
+        return jsonify({"error": "Unauthorized"}), 401
+
     data = request.get_json()
     question = data.get("message", "")
 
-    # Allow only off-road-related keywords
     allowed_keywords = [
         "off-road", "offroading", "dune", "sand", "4x4", "recovery",
         "trail", "vehicle", "gear", "terrain", "deflation"
