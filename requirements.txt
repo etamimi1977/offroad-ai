@@ -1,2 +1,2 @@
-flask
-google-genai
+Flask>=2.2.5
+google-generativeai>=0.3.2

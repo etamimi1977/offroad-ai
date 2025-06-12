@@ -1,39 +1,27 @@
-
 from flask import Flask, request, jsonify
 import os
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import GenerativeModel
 
 app = Flask(__name__)
 
+# Set API key from environment variable
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = "gemini-2.5-pro-preview-06-05"
 
-@app.route("/ask-agent", methods=["POST"])
-def ask_agent():
-    user_input = request.json.get("message", "")
-    if not user_input:
-        return jsonify({"error": "Message is required"}), 400
+# Initialize model
+model = GenerativeModel("gemini-pro")
 
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=user_input),
-            ],
-        )
-    ]
-    generate_content_config = types.GenerateContentConfig(response_mime_type="text/plain")
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        user_input = request.json.get("message", "")
+        if not user_input:
+            return jsonify({"error": "No message provided"}), 400
 
-    full_response = ""
-    for chunk in genai.Client().models.generate_content_stream(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
-    ):
-        full_response += chunk.text
-
-    return jsonify({"response": full_response})
+        response = model.generate_content(user_input)
+        return jsonify({"response": response.text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
